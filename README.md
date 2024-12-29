@@ -10,10 +10,10 @@
 - **文件**：
 
     - **后端**：`run.py` `__init__.py` `forms.py` `models.py` `routes.py` `config.py`
-    - **数据库**：MySQL
+    - **数据库**：SQLite
     - **前端**：`templates` `static`
 
-- **概述**：这是一个练习项目，后端采用 Flask 框架，数据库使用 MySQL，前端没有使用框架。
+- **概述**：这是一个练习项目，后端采用 Flask 框架，数据库使用 SQLite，前端没有使用框架。
 - **功能**：
 
     - 每个页面都有公共部分。
@@ -24,6 +24,6 @@
 
 - **存储**
 
-    - 代码存储在 Git 托管平台：前后端合并存储 `blog-flak-mysql-html`
+    - 代码存储在 Git 托管平台：前后端合并存储 `blog-flak-SQLite-html`
     - 无镜像存储在 DockerHub
     - 没有在 `projects` 中整理
