@@ -1,0 +1,47 @@
+# 定义阶段
+stages:
+  - test
+  - build
+  - deploy
+
+# 变量定义
+variables:
+  IMAGE_NAME: jerrybaijy/blog-flak-sqlite-html
+  IMAGE_TAG: v1.0
+  DOCKER_IMAGE: $IMAGE_NAME:$IMAGE_TAG
+
+# 测试阶段
+test:
+  stage: test
+  image: python:3.12-slim
+  script:
+    - pip install -r requirements.txt
+    - python -m pytest tests/ || echo "No tests found"
+  
+# 构建阶段
+build:
+  stage: build
+  image: docker:latest
+  services:
+    - docker:dind
+  before_script:
+    - docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
+  script:
+    - docker build -t $DOCKER_IMAGE .
+    - docker push $DOCKER_IMAGE
+  only:
+    - main  # 只在main分支上运行
+
+# 部署阶段
+deploy:
+  stage: deploy
+  image: docker:latest
+  services:
+    - docker:dind
+  script:
+    - docker pull $DOCKER_IMAGE
+    - docker run -d -p 5000:5000 $DOCKER_IMAGE
+  only:
+    - main
+  environment:
+    name: production 

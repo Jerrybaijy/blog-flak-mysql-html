@@ -1,5 +1,9 @@
+import os
+
+basedir = os.path.abspath(os.path.dirname(__file__))
+
 class Config:
-    SECRET_KEY = 'dev'  # 开发环境使用，生产环境应该使用复杂的随机字符串
-    # 使用 URL 编码的用户名和密码
-    SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://root:123456@localhost/blog_db'  # 请替换为你的实际配置
+    SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev'
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
+        f'sqlite:///{os.path.join(basedir, "app.db")}'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
