@@ -25,5 +25,5 @@
 - **存储**
 
     - 代码存储在 Git 托管平台：前后端合并存储 `blog-flak-SQLite-html`
-    - 无镜像存储在 DockerHub
+    - 镜像存储在 DockerHub：`blog-flak-sqlite-html`
     - 没有在 `projects` 中整理
