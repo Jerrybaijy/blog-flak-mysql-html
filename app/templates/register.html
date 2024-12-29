@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="form-container">
+    <h1 class="text-center mb-4">注册</h1>
+    <form method="post">
+        {{ form.hidden_tag() }}
+        <div class="mb-3">
+            {{ form.username(class="form-control", placeholder="用户名") }}
+            {% for error in form.username.errors %}
+            <div class="text-danger small">{{ error }}</div>
+            {% endfor %}
+        </div>
+        <div class="mb-3">
+            {{ form.email(class="form-control", placeholder="邮箱") }}
+            {% for error in form.email.errors %}
+            <div class="text-danger small">{{ error }}</div>
+            {% endfor %}
+        </div>
+        <div class="mb-3">
+            {{ form.password(class="form-control", placeholder="密码") }}
+            {% for error in form.password.errors %}
+            <div class="text-danger small">{{ error }}</div>
+            {% endfor %}
+        </div>
+        <div class="mb-3">
+            {{ form.password2(class="form-control", placeholder="确认密码") }}
+            {% for error in form.password2.errors %}
+            <div class="text-danger small">{{ error }}</div>
+            {% endfor %}
+        </div>
+        <div class="d-grid">
+            {{ form.submit(class="btn btn-primary") }}
+        </div>
+        <div class="text-center mt-3">
+            <small>已有账号？<a href="{{ url_for('main.login') }}">立即登录</a></small>
+        </div>
+    </form>
+</div>
+{% endblock %} 

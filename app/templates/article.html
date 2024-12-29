@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Articles</h2>
+{% for post in posts %}
+<div class="post-preview">
+    <h3><a href="{{ url_for('main.post', id=post.id) }}">{{ post.title }}</a></h3>
+    <p class="post-meta">
+        作者 <a href="{{ url_for('main.user_profile', username=post.author.username) }}">
+            {{ post.author.username }}
+        </a> 
+        发布于 {{ post.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}
+    </p>
+    <p class="post-content">{{ post.content[:200] }}...</p>
+    <hr>
+</div>
+{% endfor %}
+{% endblock %} 

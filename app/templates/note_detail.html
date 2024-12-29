@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="note-container">
+    <!-- 左侧大纲目录 -->
+    <div class="outline-sidebar">
+        <div class="outline-content">
+            <h3>目录</h3>
+            <div id="outline-list"></div>
+        </div>
+    </div>
+    
+    <!-- 右侧笔记内容 -->
+    <div class="note-detail">
+        <div class="markdown-body">
+            {{ content | safe }}
+        </div>
+    </div>
+</div>
+
+<!-- 添加大纲生成脚本 -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const content = document.querySelector('.markdown-body');
+    const outlineList = document.getElementById('outline-list');
+    const headings = content.querySelectorAll('h1, h2, h3, h4, h5, h6');
+    
+    // 生成大纲
+    headings.forEach((heading, index) => {
+        // 添加 ID 以供锚点链接
+        heading.id = `heading-${index}`;
+        
+        // 创建大纲项
+        const level = parseInt(heading.tagName[1]);
+        const item = document.createElement('div');
+        item.className = `outline-item level-${level}`;
+        
+        const link = document.createElement('a');
+        link.href = `#heading-${index}`;
+        link.textContent = heading.textContent;
+        link.onclick = (e) => {
+            e.preventDefault();
+            heading.scrollIntoView({ behavior: 'smooth' });
+        };
+        
+        item.appendChild(link);
+        outlineList.appendChild(item);
+    });
+    
+    // 监听滚动，高亮当前标题
+    let ticking = false;
+    document.addEventListener('scroll', function() {
+        if (!ticking) {
+            window.requestAnimationFrame(function() {
+                const outlineItems = outlineList.querySelectorAll('.outline-item a');
+                const headingTops = Array.from(headings).map(h => h.getBoundingClientRect().top);
+                
+                // 找到当前可见的标题
+                const currentIndex = headingTops.findIndex(top => top > 0);
+                
+                // 移除所有高亮
+                outlineItems.forEach(item => item.classList.remove('active'));
+                
+                // 添加高亮
+                if (currentIndex >= 0) {
+                    outlineItems[Math.max(0, currentIndex - 1)].classList.add('active');
+                }
+                
+                ticking = false;
+            });
+            ticking = true;
+        }
+    });
+});
+</script>
+{% endblock %} 

@@ -1,0 +1,376 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="music-container">
+    <div class="music-player-wrapper">
+        <!-- 播放器主体 -->
+        <div class="player-main">
+            <!-- 专辑封面 -->
+            <div class="album-cover">
+                <div class="cover-image" id="albumCover">
+                    <i class="bi bi-music-note-beamed"></i>
+                </div>
+            </div>
+            
+            <!-- 播放控制区 -->
+            <div class="player-controls">
+                <div class="song-info">
+                    <div class="song-title" id="currentSong">选择歌曲开始播放</div>
+                </div>
+                
+                <!-- 进度条 -->
+                <div class="progress-container">
+                    <span id="currentTime">00:00</span>
+                    <div class="progress">
+                        <div class="progress-bar" role="progressbar"></div>
+                    </div>
+                    <span id="duration">00:00</span>
+                </div>
+                
+                <!-- 控制按钮 -->
+                <div class="controls-main">
+                    <button class="control-btn" id="prevBtn">
+                        <i class="bi bi-skip-start-fill"></i>
+                    </button>
+                    <button class="control-btn play-btn" id="playBtn">
+                        <i class="bi bi-play-circle-fill"></i>
+                    </button>
+                    <button class="control-btn" id="nextBtn">
+                        <i class="bi bi-skip-end-fill"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 添加回 audio 元素，但隐藏它 -->
+            <audio id="bgMusic" style="display: none;">
+                <source src="{{ music_files[0].path if music_files else '' }}" type="audio/mpeg">
+            </audio>
+        </div>
+
+        <!-- 播放列表 -->
+        <div class="playlist-container">
+            <div class="playlist-header">
+                <div class="playlist-title">
+                    <h3>播放列表</h3>
+                    <button class="btn filter-btn" data-bs-toggle="modal" data-bs-target="#filterModal">
+                        筛选
+                        <i class="bi bi-caret-down-fill"></i>
+                    </button>
+                </div>
+                <span class="song-count">{{ music_files|length }} 首歌曲</span>
+            </div>
+            <div class="song-list">
+                {% for music in music_files %}
+                <div class="song-item" 
+                     data-src="{{ music.path }}" 
+                     data-cover="{{ music.cover }}"
+                     data-keywords="{{ music.keywords|join(',') }}"
+                     data-year="{{ music.year }}">
+                    <div class="song-info">
+                        <i class="bi bi-music-note"></i>
+                        <span class="song-name">{{ music.name }}</span>
+                    </div>
+                    <div class="song-duration"></div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 筛选弹窗 -->
+<div class="modal fade" id="filterModal" tabindex="-1" aria-labelledby="filterModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="filterModalLabel">筛选选项</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- 关键词筛选组 -->
+                <div class="filter-group">
+                    <div class="filter-group-header">
+                        <h6>关键词</h6>
+                    </div>
+                    <div class="keyword-inputs">
+                        <div class="keyword-input-group">
+                            <input type="text" class="form-control" placeholder="输入关键词">
+                            <button class="btn btn-link remove-keyword" style="display: none;">
+                                <i class="bi bi-x-lg"></i>
+                            </button>
+                        </div>
+                        <button class="btn btn-link add-keyword">
+                            <i class="bi bi-plus-lg"></i>
+                            添加关键词
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 年份筛选组 -->
+                <div class="filter-group">
+                    <div class="filter-group-header">
+                        <h6>年份</h6>
+                    </div>
+                    <div class="year-range">
+                        <div class="input-group">
+                            <input type="number" 
+                                   class="form-control year-start" 
+                                   placeholder="起始年份"
+                                   value="0">
+                            <span class="year-separator">至</span>
+                            <input type="number" 
+                                   class="form-control year-end" 
+                                   placeholder="结束年份"
+                                   value="{{ current_year }}">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="applyFilter">应用</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const audio = document.getElementById('bgMusic');
+    const playBtn = document.getElementById('playBtn');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const currentSong = document.getElementById('currentSong');
+    const currentTimeEl = document.getElementById('currentTime');
+    const durationEl = document.getElementById('duration');
+    const progressBar = document.querySelector('.progress-bar');
+    const songItems = document.querySelectorAll('.song-item');
+    const albumCover = document.getElementById('albumCover');
+    const filterButton = document.getElementById('applyFilter');
+    const dropdownMenu = document.querySelector('.dropdown-menu');
+    const songCount = document.querySelector('.song-count');
+    
+    let currentIndex = 0;
+
+    // 格式化时间
+    function formatTime(seconds) {
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    // 更新播放按钮状态
+    function updatePlayButton() {
+        const icon = playBtn.querySelector('i');
+        if (audio.paused) {
+            icon.classList.remove('bi-pause-circle-fill');
+            icon.classList.add('bi-play-circle-fill');
+        } else {
+            icon.classList.remove('bi-play-circle-fill');
+            icon.classList.add('bi-pause-circle-fill');
+        }
+    }
+
+    // 更新当前播放歌曲
+    function updateCurrentSong(index) {
+        songItems.forEach(item => item.classList.remove('active'));
+        songItems[index].classList.add('active');
+        currentSong.textContent = songItems[index].querySelector('.song-name').textContent;
+    }
+
+    // 播放指定索引的歌曲
+    function playSong(index) {
+        currentIndex = index;
+        const source = audio.querySelector('source');
+        source.src = songItems[index].dataset.src;
+        audio.load();
+        audio.play();
+        updateCurrentSong(index);
+        updateAlbumCover(index);
+    }
+
+    // 播放/暂停
+    playBtn.addEventListener('click', () => {
+        if (audio.paused) {
+            audio.play();
+        } else {
+            audio.pause();
+        }
+    });
+
+    // 上一曲
+    prevBtn.addEventListener('click', () => {
+        const newIndex = (currentIndex - 1 + songItems.length) % songItems.length;
+        playSong(newIndex);
+    });
+
+    // 下一曲
+    nextBtn.addEventListener('click', () => {
+        const newIndex = (currentIndex + 1) % songItems.length;
+        playSong(newIndex);
+    });
+
+    // 初始化第一首歌的音频源和界面
+    if (songItems.length > 0) {
+        const source = audio.querySelector('source');
+        source.src = songItems[0].dataset.src;
+        audio.load();
+        currentSong.textContent = songItems[0].querySelector('.song-name').textContent;
+        updateAlbumCover(0);  // 显示第一首歌的专辑封面
+        albumCover.style.display = 'block';
+        currentSong.style.opacity = '1';
+    } else {
+        // 如果没有歌曲，隐藏专辑封面
+        albumCover.style.display = 'none';
+        currentSong.style.opacity = '0.5';
+    }
+
+    // 点击播放列表
+    songItems.forEach((item, index) => {
+        item.addEventListener('click', () => {
+            playSong(index);
+        });
+    });
+
+    // 更新进度条和时间
+    audio.addEventListener('timeupdate', () => {
+        const progress = (audio.currentTime / audio.duration) * 100;
+        progressBar.style.width = `${progress}%`;
+        currentTimeEl.textContent = formatTime(audio.currentTime);
+    });
+
+    // 音频加载完成后显示总时长
+    audio.addEventListener('loadedmetadata', () => {
+        durationEl.textContent = formatTime(audio.duration);
+    });
+
+    // 播放状态改变时更新按钮
+    audio.addEventListener('play', updatePlayButton);
+    audio.addEventListener('pause', updatePlayButton);
+
+    // 自动播放下一曲
+    audio.addEventListener('ended', () => {
+        const newIndex = (currentIndex + 1) % songItems.length;
+        playSong(newIndex);
+    });
+
+    // 更新专辑封面
+    function updateAlbumCover(index) {
+        const coverData = songItems[index].dataset.cover;
+        if (coverData) {
+            albumCover.innerHTML = `<img src="data:image/jpeg;base64,${coverData}" alt="Album Cover">`;
+        } else {
+            albumCover.innerHTML = '<i class="bi bi-music-note-beamed"></i>';
+        }
+    }
+
+    // 添加过滤功能
+    // 阻止点击复选框时关闭下拉菜单
+    dropdownMenu.addEventListener('click', function(e) {
+        if (e.target.type === 'checkbox' || e.target.classList.contains('form-check-label')) {
+            e.stopPropagation();
+        }
+    });
+
+    // 添加关键词输入相关功能
+    const addKeywordBtn = document.querySelector('.add-keyword');
+    const keywordInputs = document.querySelector('.keyword-inputs');
+
+    // 添加新的关键词输入框
+    addKeywordBtn.addEventListener('click', function() {
+        const newGroup = document.createElement('div');
+        newGroup.className = 'keyword-input-group';
+        newGroup.innerHTML = `
+            <input type="text" class="form-control" placeholder="输入关键词">
+            <button class="btn btn-link remove-keyword">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        `;
+        
+        // 插入到"添加关键词"按钮之前
+        addKeywordBtn.parentElement.insertBefore(newGroup, addKeywordBtn);
+        
+        // 显示所有删除按钮
+        document.querySelectorAll('.remove-keyword').forEach(btn => {
+            btn.style.display = 'block';
+        });
+
+        // 聚焦到新添加的输入框
+        const newInput = newGroup.querySelector('input');
+        newInput.focus();
+    });
+
+    // 删除关键词输入框
+    keywordInputs.addEventListener('click', function(e) {
+        if (e.target.closest('.remove-keyword')) {
+            const group = e.target.closest('.keyword-input-group');
+            group.remove();
+            
+            // 如果只剩一个输入框，隐藏其删除按钮
+            const remainingGroups = document.querySelectorAll('.keyword-input-group');
+            if (remainingGroups.length === 1) {
+                remainingGroups[0].querySelector('.remove-keyword').style.display = 'none';
+            }
+        }
+    });
+
+    // 修改应用筛选的逻辑
+    filterButton.addEventListener('click', function(e) {
+        e.stopPropagation();
+        // 获取关键词
+        const keywords = Array.from(document.querySelectorAll('.keyword-input-group input'))
+            .map(input => input.value.trim())
+            .filter(value => value !== '');
+        
+        // 获取年份范围
+        const yearStart = parseInt(document.querySelector('.year-start').value) || 0;
+        const yearEnd = parseInt(document.querySelector('.year-end').value) || new Date().getFullYear();
+        
+        // 遍历所有歌曲
+        songItems.forEach(item => {
+            const itemKeywords = (item.dataset.keywords || '').split(',').filter(k => k);
+            const itemYear = parseInt(item.dataset.year) || 0;
+            
+            // 检查是否满足所有筛选条件
+            const matchesKeywords = keywords.length === 0 || 
+                                  keywords.every(keyword => {
+                                      const regex = new RegExp(keyword, 'i');
+                                      return itemKeywords.some(k => regex.test(k));
+                                  });
+            
+            const matchesYear = itemYear >= yearStart && itemYear <= yearEnd;
+            
+            // 只有同时满足关键词和年份条件才显示
+            item.style.display = (matchesKeywords && matchesYear) ? '' : 'none';
+        });
+
+        // 更新歌曲计数
+        const visibleSongs = Array.from(songItems).filter(item => item.style.display !== 'none').length;
+        songCount.textContent = `${visibleSongs} 首歌曲`;
+
+        // 关闭模态框
+        const modal = bootstrap.Modal.getInstance(document.getElementById('filterModal'));
+        modal.hide();
+    });
+
+    // 添加年份输入验证
+    document.querySelectorAll('.year-range-inputs input').forEach(input => {
+        input.addEventListener('change', function() {
+            const startInput = document.querySelector('.year-start');
+            const endInput = document.querySelector('.year-end');
+            const startYear = parseInt(startInput.value);
+            const endYear = parseInt(endInput.value);
+            
+            if (startYear > endYear) {
+                if (this === startInput) {
+                    endInput.value = startYear;
+                } else {
+                    startInput.value = endYear;
+                }
+            }
+        });
+    });
+});
+</script>
+
+{% endblock %} 

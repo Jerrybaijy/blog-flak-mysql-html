@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Notes</h2>
+{% for note in notes %}
+<div class="note-preview">
+    <h3><a href="{{ url_for('main.note_detail', filename=note.filename) }}">{{ note.title }}</a></h3>
+    <p class="note-meta">
+        最后修改于 {{ note.modified_time.strftime('%Y-%m-%d %H:%M:%S') }}
+    </p>
+    <p class="note-content">{{ note.preview }}...</p>
+    <hr>
+</div>
+{% endfor %}
+{% endblock %} 
